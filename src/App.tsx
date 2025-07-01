@@ -1,97 +1,119 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import Grid from '@mui/material/Grid';
-import { Box, Typography, Paper } from '@mui/material';
+// src/App.tsx
 
-const widgetStyles = [
-  { backgroundColor: '#FF6F61', color: 'white' }, // Coral
-  { backgroundColor: '#6B5B95', color: 'white' }, // Indigo
-  { backgroundColor: '#88B04B', color: 'white' }, // Verde claro
-  { backgroundColor: '#F7CAC9', color: '#333' },  // Rosa claro
-];
-
+import { Grid } from '@mui/material';
+import HeaderUI from './components/HeaderUI';
+import AlertUI from './components/AlertUI';
+import SelectorUI from './components/SelectorUI';
+import IndicadorUI from './components/IndicadorUI';
+import GraficoUI from './components/GraficoUI';
+import TablaUI from './components/TablaUI';
+import InfoAdicionalUI from './components/InfoAdicionalUI';
+import { useState, useEffect } from 'react';
+import { fetchWeatherData } from './services/fetchWeather';
 
 function App() {
+  
+const [city, setCity] = useState('guayaquil'); // valor por defecto
+const cityCoords: Record<string, { lat: number; lon: number }> = {
+  guayaquil: { lat: -2.17, lon: -79.92 },
+  quito: { lat: -0.18, lon: -78.47 },
+  manta: { lat: -0.96, lon: -80.71 },
+  cuenca: { lat: -2.90, lon: -79.00 },
+};
+  const [loading, setLoading] = useState(true);
+  const [weatherData, setWeatherData] = useState<any | null>(null);
+
+  useEffect(() => {
+    const coords = cityCoords[city];
+    const timezone = 'America/Guayaquil'; // o ajustar según ciudad
+    
+    fetchWeatherData(coords.lat, coords.lon, timezone)
+  .then(data => {
+    setWeatherData(data);
+    setLoading(false); // ✅ Detener carga al recibir datos
+  })
+  .catch(error => {
+    console.error('Error al obtener clima:', error);
+    setLoading(false);
+  })}, [city]);
+
+  const temperaturaActual = weatherData?.current_weather?.temperature;
+  const humedadActual = weatherData?.hourly?.relativehumidity_2m?.[0];
+  const uvMaxHoy = weatherData?.daily?.uv_index_max?.[0];
+
+
+  const hourlyData = weatherData?.hourly?.time?.map((time: string, i: number) => ({
+    time: time.split('T')[1].slice(0, 5),
+    temperature: weatherData.hourly.temperature_2m[i],
+  }));
+
+  const dailyData = weatherData?.daily?.time?.map((date: string, i: number) => ({
+    date,
+    maxTemp: weatherData.daily.temperature_2m_max[i],
+    minTemp: weatherData.daily.temperature_2m_min[i],
+  }));
+
+  
   return (
-    <Box sx={{ padding: 3, bgcolor: '#f5f5f5', minHeight: '100vh' }}>
-      <Grid container spacing={3}>
-        {/* Encabezado */}
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2, bgcolor: '#1976d2', color: 'white' }}>
-            <Typography variant="h4" align="center">
-              Encabezado del Dashboard
-            </Typography>
-          </Paper>
-        </Grid>
+    <Grid container spacing={5} maxWidth="lg" sx={{ py: 4 }} justifyContent="center" alignItems="center">
+      {/* Encabezado */}
+      <Grid item xs={12} md={12} lg={12} container justifyContent="center" alignItems="center">
+        <HeaderUI />
+      </Grid>
 
-        {/* Alertas */}
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2, bgcolor: '#f44336', color: 'white' }}>
-            <Typography variant="h6" align="center">
-              Alertas importantes
-            </Typography>
-          </Paper>
-        </Grid>
+      {/* Alertas */}
+      <Grid item xs={12} container justifyContent="flex-end" alignItems="center">
+        <AlertUI description="No se preveen lluvias" />
+      </Grid>
 
-        {/* Selector */}
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Selector
-            </Typography>
-            {/* Aquí podrías poner un Select o cualquier control */}
-            <Box sx={{ bgcolor: '#e3f2fd', height: 100, borderRadius: 1 }} />
-          </Paper>
-        </Grid>
+      {/* Selector */}
+      <Grid item xs={12} md={3}>
+        <SelectorUI onCityChange={setCity} />
+      </Grid>
 
-        {/* Indicadores */}
-        <Grid item xs={12} md={9}>
-          <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Indicadores
-            </Typography>
-            {/* Aquí podrían ir varios indicadores */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Box sx={{ bgcolor: '#c8e6c9', flex: 1, height: 100, borderRadius: 1 }} />
-              <Box sx={{ bgcolor: '#ffe0b2', flex: 1, height: 100, borderRadius: 1 }} />
-              <Box sx={{ bgcolor: '#bbdefb', flex: 1, height: 100, borderRadius: 1 }} />
-            </Box>
-          </Paper>
+      {/* Indicadores */}
+      <Grid item xs={12} md={9} container spacing={2}>
+        <Grid item xs={12} sm={4}>
+          <IndicadorUI title="Temperatura" value={temperaturaActual ?? '--'} unit="°C" />
         </Grid>
-
-        {/* Gráfico */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2, height: 300 }}>
-            <Typography variant="h6" gutterBottom>
-              Gráfico
-            </Typography>
-            <Box sx={{ bgcolor: '#fce4ec', height: '100%', borderRadius: 1 }} />
-          </Paper>
+        <Grid item xs={12} sm={4}>
+          <IndicadorUI title="Humedad" value={humedadActual ?? '--'} unit="%" />
         </Grid>
-
-        {/* Tabla */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={3} sx={{ p: 2, height: 300 }}>
-            <Typography variant="h6" gutterBottom>
-              Tabla de datos
-            </Typography>
-            <Box sx={{ bgcolor: '#ede7f6', height: '100%', borderRadius: 1 }} />
-          </Paper>
-        </Grid>
-
-        {/* Información adicional */}
-        <Grid item xs={12}>
-          <Paper elevation={3} sx={{ p: 2, bgcolor: '#b2dfdb' }}>
-            <Typography variant="h6" align="center">
-              Información adicional
-            </Typography>
-          </Paper>
+        <Grid item xs={12} sm={4}>
+          <IndicadorUI title="Índice UV" value={uvMaxHoy ?? '--'} />
         </Grid>
       </Grid>
-    </Box>
-  )
+      
+      {/* Gráfico */}
+      <Grid
+        item
+        xs={12}
+        md={6}
+        sx={{
+          display: { xs: 'none', md: 'block' }, // ocultar en pantallas pequeñas
+        }}
+      >
+        <GraficoUI data={hourlyData || []}  />
+      </Grid>
+
+      {/* Tabla */}
+      <Grid
+        item
+        xs={12}
+        md={6}
+        sx={{
+          display: { xs: 'none', md: 'block' }, // oculta en pantallas pequeñas
+        }}
+      >
+        <TablaUI data={dailyData || []} />
+      </Grid>
+
+      {/* Información adicional */}
+      <Grid item xs={12}>
+        <InfoAdicionalUI message="Datos proporcionados por Open-Meteo. Actualización cada 3 horas." />
+      </Grid>
+    </Grid>
+  );
 }
 
-export default App
+export default App;
